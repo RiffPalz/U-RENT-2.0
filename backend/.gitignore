@@ -35,3 +35,12 @@ build/
 *.sqlite
 storage/
 uploads/
+
+# Sequelize logs and SQLite data
+*.log
+*.sqlite
+/database.sqlite
+
+# Temp/Backup environment files
+.env.*
+!.env.example
