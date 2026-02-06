@@ -6,7 +6,6 @@ import {
 
 export const userRegisterValidator = (req, res, next) => {
   const {
-    userID,
     fullName,
     email,
     contactNumber,
@@ -17,13 +16,23 @@ export const userRegisterValidator = (req, res, next) => {
   } = req.body;
 
   // REQUIRED FIELDS
-  if (!userID) return res.status(400).json({ message: "User ID is required" });
   if (!fullName) return res.status(400).json({ message: "Full name is required" });
   if (!email) return res.status(400).json({ message: "Email is required" });
   if (!userName) return res.status(400).json({ message: "Username is required" });
   if (!password) return res.status(400).json({ message: "Password is required" });
   if (!unitNumber) return res.status(400).json({ message: "Unit number is required" });
 
+  // VALIDATE UNIT NUMBER (MGC Building Range)
+  const validUnits = [
+    101, 102, 103, 104, 105, 106, 107,
+    201, 202, 203, 204, 205, 206,
+    301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316,
+    401, 402, 403, 404, 405, 406, 407, 408
+  ];
+
+  if (!validUnits.includes(Number(unitNumber))) {
+    return res.status(400).json({ message: "Invalid unit number for MGC Building" });
+  }
   // EMAIL
   if (!validateEmail(email)) {
     return res.status(400).json({ message: "Invalid email format" });

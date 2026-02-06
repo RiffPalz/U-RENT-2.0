@@ -1,14 +1,36 @@
 import User from "../models/user.js";
 import { generateAccessToken, generateLoginToken } from "../utils/token.js";
+import { Op } from "sequelize";
 
 /**
- * Register new user
+ * Helper to generate auto-incrementing publicUserID like TENANT-001
+ */
+const generatePublicUserID = async () => {
+  // Find the last user with a TENANT-XXX ID
+  const lastUser = await User.findOne({
+    where: { publicUserID: { [Op.like]: "TENANT-%" } },
+    order: [["createdAt", "DESC"]],
+  });
+
+  let nextNumber = 1;
+
+  if (lastUser && lastUser.publicUserID) {
+    const match = lastUser.publicUserID.match(/TENANT-(\d+)/);
+    if (match) {
+      nextNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  return `TENANT-${String(nextNumber).padStart(3, "0")}`;
+};
+
+/**
+ * REGISTER USER
  */
 export const registerUser = async (userData) => {
   const {
-    userID,
     fullName,
-    email, 
+    email,
     contactNumber,
     unitNumber,
     numberOfTenants,
@@ -16,79 +38,67 @@ export const registerUser = async (userData) => {
     password,
   } = userData;
 
-  // Check email (map email -> emailAddress)
-  const emailExists = await User.findOne({
-    where: { emailAddress: email },
-  });
-
-  if (emailExists) {
+  // Check if email or username already exists
+  if (await User.findOne({ where: { emailAddress: email } })) {
     throw new Error("Email already in use");
   }
 
-  // Check username
-  const usernameExists = await User.findOne({
-    where: { userName },
-  });
-
-  if (usernameExists) {
+  if (await User.findOne({ where: { userName } })) {
     throw new Error("Username already in use");
   }
 
+  // Auto-generate publicUserID
+  const publicUserID = await generatePublicUserID();
+
+  // Create user
   const user = await User.create({
-    userID,
+    publicUserID,
     fullName,
-    emailAddress: email, // ✅ correct DB field
+    emailAddress: email,
     contactNumber,
     unitNumber,
     numberOfTenants,
     userName,
-    password, // 🔐 auto-hashed by hook
+    passwordHash: password, // triggers beforeCreate hook to hash
     role: "user",
   });
 
   return user;
 };
 
-
 /**
- * User login
+ * LOGIN USER
  */
 export const loginUser = async ({ userName, password }) => {
-  const user = await User.findOne({
-    where: { userName },
-  });
-
-  if (!user) {
+  const user = await User.findOne({ where: { userName } });
+  if (!user || user.role !== "user") {
     throw new Error("Invalid username or password");
   }
 
   const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    throw new Error("Invalid username or password");
-  }
+  if (!isMatch) throw new Error("Invalid username or password");
 
-  const accessToken = generateAccessToken({
-    id: user.ID,
-    role: user.role,
-  });
-
+  // Generate tokens
+  const accessToken = generateAccessToken({ id: user.ID, role: user.role });
   const loginToken = generateLoginToken();
+
+  // Save login token
   user.loginToken = loginToken;
   await user.save();
 
   return {
+    message: "Login successful",
     accessToken,
     loginToken,
     user: {
       id: user.ID,
-      userID: user.userID,
+      publicUserID: user.publicUserID,
       fullName: user.fullName,
-      userName: user.userName,
       emailAddress: user.emailAddress,
+      userName: user.userName,
+      contactNumber: user.contactNumber,
       unitNumber: user.unitNumber,
       role: user.role,
     },
   };
 };
-
-

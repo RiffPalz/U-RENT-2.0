@@ -16,7 +16,7 @@ const User = sequelize.define(
             unique: true,
         },
         fullName: {
-            type: DataTypes.STRING(255), 
+            type: DataTypes.STRING(255),
             allowNull: false,
         },
         emailAddress: {
@@ -46,7 +46,7 @@ const User = sequelize.define(
         },
         numberOfTenants: {
             type: DataTypes.INTEGER,
-            allowNull: true, 
+            allowNull: true,
             validate: {
                 min: 1,
                 max: 2,
@@ -57,7 +57,7 @@ const User = sequelize.define(
             allowNull: false,
             unique: true,
         },
-        passwordHash: { 
+        passwordHash: {
             type: DataTypes.STRING(255),
             allowNull: false,
         },
@@ -80,7 +80,7 @@ const User = sequelize.define(
         },
     },
     {
-        tableName: "users", 
+        tableName: "users",
         timestamps: true,
         createdAt: "createdAt",
         updatedAt: "updatedAt",
@@ -90,6 +90,10 @@ const User = sequelize.define(
                 if (user.passwordHash) {
                     const salt = await bcrypt.genSalt(10);
                     user.passwordHash = await bcrypt.hash(user.passwordHash, salt);
+                }
+
+                if (!user.publicUserID) {
+                    user.publicUserID = `PUBLIC-USER-${Date.now()}`;
                 }
             },
             beforeUpdate: async (user) => {
