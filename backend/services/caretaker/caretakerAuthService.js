@@ -2,29 +2,31 @@ import { User, Caretaker } from "../../models/index.js";
 import jwt from "jsonwebtoken";
 
 export const caretakerLogin = async ({ userName, password }) => {
+  if (!userName || !password) {
+    throw new Error("Username and password are required");
+  }
+
+  // 1️⃣ Find user with Caretaker profile
   const user = await User.findOne({
     where: { userName },
-    include: [{ model: Caretaker }]
+    include: [{ model: Caretaker }],
   });
 
-  if (!user || user.role !== 'caretaker' || !user.Caretaker) {
+  if (!user || user.role !== "caretaker" || !user.Caretaker) {
     throw new Error("Invalid username or password");
   }
 
+  // 2️⃣ Compare password using User model method
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw new Error("Invalid username or password");
   }
 
+  // 3️⃣ Generate JWT
   const token = jwt.sign(
-    {
-      id: user.ID,
-      role: "caretaker",
-    },
+    { id: user.ID, role: "caretaker" },
     process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRES || "7d",
-    }
+    { expiresIn: process.env.JWT_EXPIRES || "7d" }
   );
 
   user.loginToken = token;

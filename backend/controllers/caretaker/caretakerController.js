@@ -1,6 +1,4 @@
-import {
-  caretakerLogin,
-} from "../../services/caretaker/caretakerAuthService.js";
+import { caretakerLogin } from "../../services/caretaker/caretakerAuthService.js";
 
 /**
  * ==============================
@@ -42,17 +40,29 @@ export const loginCaretaker = async (req, res) => {
  */
 export const fetchCaretakerProfile = async (req, res) => {
   try {
+    const { instance, user } = req.caretaker;
+
     return res.status(200).json({
       success: true,
-      caretaker: req.caretaker,
+      caretaker: {
+        id: instance.ID,
+        caretaker_id: instance.caretaker_id,
+        fullName: instance.full_name,
+        phoneNumber: instance.phone_number,
+        userName: user.userName,
+        emailAddress: user.emailAddress,
+        role: user.role,
+      },
     });
   } catch (error) {
+    console.error("Fetch caretaker profile error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch caretaker profile",
     });
   }
 };
+
 
 /**
  * ==============================
@@ -61,15 +71,48 @@ export const fetchCaretakerProfile = async (req, res) => {
  */
 export const saveCaretakerProfile = async (req, res) => {
   try {
-    // You can expand this later
+    const { instance: caretaker, user } = req.caretaker;
+    const { fullName, phoneNumber, emailAddress, userName } = req.body;
+
+    // Update Caretaker fields
+    if (fullName) caretaker.full_name = fullName.trim();
+    if (phoneNumber) caretaker.phone_number = phoneNumber.trim();
+
+    // Update linked User fields
+    if (emailAddress && emailAddress !== user.emailAddress) {
+      const emailExists = await User.findOne({ where: { emailAddress } });
+      if (emailExists) return res.status(400).json({ success: false, message: "Email already in use" });
+      user.emailAddress = emailAddress.trim();
+    }
+
+    if (userName && userName !== user.userName) {
+      const userNameExists = await User.findOne({ where: { userName } });
+      if (userNameExists) return res.status(400).json({ success: false, message: "Username already in use" });
+      user.userName = userName.trim();
+    }
+
+    await caretaker.save();
+    await user.save();
+
     return res.status(200).json({
       success: true,
       message: "Caretaker profile updated successfully",
+      caretaker: {
+        id: caretaker.ID,
+        caretaker_id: caretaker.caretaker_id,
+        fullName: caretaker.full_name,
+        phoneNumber: caretaker.phone_number,
+        userName: user.userName,
+        emailAddress: user.emailAddress,
+        role: user.role,
+      },
     });
   } catch (error) {
+    console.error("Caretaker update error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to update caretaker profile",
     });
   }
 };
+

@@ -9,7 +9,7 @@ const Caretaker = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    caretaker_id: { 
+    caretaker_id: {
       type: DataTypes.STRING(50),
       allowNull: false,
       unique: true,
@@ -22,11 +22,11 @@ const Caretaker = sequelize.define(
         key: 'ID'
       }
     },
-    full_name: { 
+    full_name: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true,
     },
-    phone_number: { 
+    phone_number: {
       type: DataTypes.STRING(20),
       allowNull: true,
       defaultValue: null,
