@@ -1,10 +1,11 @@
 import { caretakerLogin } from "../../services/caretaker/caretakerAuthService.js";
+import User from "../../models/user.js";
+import { emitEvent } from "../../utils/emitEvent.js";
 
 /**
  * ==============================
  * CARETAKER LOGIN
  * ==============================
- * Username + Password → Generate JWT
  */
 export const loginCaretaker = async (req, res) => {
   try {
@@ -63,7 +64,6 @@ export const fetchCaretakerProfile = async (req, res) => {
   }
 };
 
-
 /**
  * ==============================
  * UPDATE CARETAKER PROFILE
@@ -74,25 +74,42 @@ export const saveCaretakerProfile = async (req, res) => {
     const { instance: caretaker, user } = req.caretaker;
     const { fullName, phoneNumber, emailAddress, userName } = req.body;
 
-    // Update Caretaker fields
+    // Update caretaker fields
     if (fullName) caretaker.full_name = fullName.trim();
     if (phoneNumber) caretaker.phone_number = phoneNumber.trim();
 
-    // Update linked User fields
+    // Update linked user fields
     if (emailAddress && emailAddress !== user.emailAddress) {
       const emailExists = await User.findOne({ where: { emailAddress } });
-      if (emailExists) return res.status(400).json({ success: false, message: "Email already in use" });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already in use",
+        });
+      }
       user.emailAddress = emailAddress.trim();
     }
 
     if (userName && userName !== user.userName) {
       const userNameExists = await User.findOne({ where: { userName } });
-      if (userNameExists) return res.status(400).json({ success: false, message: "Username already in use" });
+      if (userNameExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already in use",
+        });
+      }
       user.userName = userName.trim();
     }
 
     await caretaker.save();
     await user.save();
+
+    // 🔔 Real-time update event
+    emitEvent(req, "dataUpdated", {
+      type: "CARETAKER",
+      action: "UPDATED",
+      caretaker_id: caretaker.caretaker_id,
+    });
 
     return res.status(200).json({
       success: true,
@@ -115,4 +132,3 @@ export const saveCaretakerProfile = async (req, res) => {
     });
   }
 };
-

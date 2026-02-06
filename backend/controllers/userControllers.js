@@ -1,5 +1,6 @@
 import { registerUser, loginUser } from "../services/userAuthService.js";
 import User from "../models/user.js";
+import { emitEvent } from "../utils/emitEvent.js";
 
 /**
  * REGISTER USER
@@ -7,6 +8,13 @@ import User from "../models/user.js";
 export const register = async (req, res) => {
   try {
     const user = await registerUser(req.body);
+
+    // Emit ONLY after successful creation
+    emitEvent(req, "dataUpdated", {
+      type: "USER",
+      action: "CREATED",
+      publicUserID: user.publicUserID,
+    });
 
     return res.status(201).json({
       success: true,
@@ -22,7 +30,10 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message });
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -41,7 +52,10 @@ export const login = async (req, res) => {
       user: result.user,
     });
   } catch (error) {
-    return res.status(401).json({ success: false, message: error.message });
+    return res.status(401).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -51,7 +65,13 @@ export const login = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.auth.id);
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -67,7 +87,10 @@ export const getUserProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch profile" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch profile",
+    });
   }
 };
 
@@ -77,7 +100,13 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.auth.id);
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     const { fullName, emailAddress, userName, contactNumber, unitNumber } = req.body;
 
@@ -85,20 +114,36 @@ export const updateUserProfile = async (req, res) => {
     if (contactNumber) user.contactNumber = contactNumber;
     if (unitNumber) user.unitNumber = unitNumber;
 
-    // Check email & username uniqueness
     if (emailAddress && emailAddress !== user.emailAddress) {
       const emailExists = await User.findOne({ where: { emailAddress } });
-      if (emailExists) return res.status(400).json({ success: false, message: "Email already in use" });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already in use",
+        });
+      }
       user.emailAddress = emailAddress;
     }
 
     if (userName && userName !== user.userName) {
       const usernameExists = await User.findOne({ where: { userName } });
-      if (usernameExists) return res.status(400).json({ success: false, message: "Username already in use" });
+      if (usernameExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already in use",
+        });
+      }
       user.userName = userName;
     }
 
     await user.save();
+
+    // 🔔 Emit update event
+    emitEvent(req, "dataUpdated", {
+      type: "USER",
+      action: "UPDATED",
+      publicUserID: user.publicUserID,
+    });
 
     return res.status(200).json({
       success: true,
@@ -116,6 +161,9 @@ export const updateUserProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update user error:", error);
-    return res.status(500).json({ success: false, message: "Failed to update profile" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
+    });
   }
 };
