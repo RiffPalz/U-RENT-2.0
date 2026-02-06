@@ -20,10 +20,6 @@ const createDefaultCaretaker = async () => {
         passwordHash: plainPassword, // plain password
         role: "caretaker",
       });
-
-      console.log("✅ Default caretaker user created");
-    } else {
-      console.log("ℹ️ Default caretaker user already exists");
     }
 
     // 2️⃣ Check if Caretaker profile exists

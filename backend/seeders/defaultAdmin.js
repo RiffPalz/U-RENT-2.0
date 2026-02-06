@@ -24,11 +24,7 @@ const createDefaultAdmin = async () => {
         passwordHash: hashedPassword,
         role: "admin",
       });
-
-      console.log("✅ Default admin user created");
-    } else {
-      console.log("ℹ️ Default admin user already exists");
-    }
+    } 
 
     // 2️⃣ Check if Admin profile exists
     const existingAdmin = await Admin.findOne({ where: { userID: user.ID } });
