@@ -4,12 +4,13 @@ import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
-import { connectDB } from "./config/database.js";
+import { connectDB, sequelize } from "./config/database.js";
 import connectCloudinary from "./config/cloudinary.js";
 
 import adminRoutes from "./routes/admin/adminRoutes.js";
 import caretakerRoutes from "./routes/caretaker/caretakerRoute.js";
 import userRoutes from "./routes/userRoutes.js";
+
 
 import createDefaultAdmin from "./seeders/defaultAdmin.js";
 import createDefaultCaretaker from "./seeders/defaultCaretaker.js";
@@ -60,10 +61,16 @@ io.on("connection", (socket) => {
   });
 });
 
-// ===================== API ROUTES =====================
-app.use("/api/users", userRoutes);
+// ===================== Admin ROUTES =====================
 app.use("/api/admin", adminRoutes);
+
+
+// ===================== Caretaker ROUTES =====================
 app.use("/api/caretaker", caretakerRoutes);
+
+
+// ===================== User ROUTES =====================
+app.use("/api/users", userRoutes);
 
 // Root check
 app.get("/", (req, res) => {
@@ -76,6 +83,7 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, async () => {
   try {
     await connectDB();
+    await sequelize.sync({ force: true }); // Recreate tables
     await createDefaultAdmin();
     await createDefaultCaretaker();
 

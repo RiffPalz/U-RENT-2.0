@@ -1,11 +1,12 @@
+import User from "../../models/user.js";
+import { emitEvent } from "../../utils/emitEvent.js";
 import {
   adminLogin,
   verifyAdminOtp,
-  resendAdminCode,
+  resendAdminCode
 } from "../../services/admin/adminAuthService.js";
 
-import { User } from "../../models/index.js";
-import { emitEvent } from "../../utils/emitEvent.js";
+import { updateExpiredLeases } from "../../utils/leaseUpdater.js";
 
 /**
  * ==============================
@@ -182,6 +183,156 @@ export const resendCodeController = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Failed to resend verification code",
+    });
+  }
+};
+
+export const getPendingUsers = async (req, res) => {
+  try {
+
+    // Auto-update expired leases before fetching anything
+    await updateExpiredLeases();
+
+    const users = await User.findAll({
+      where: { role: "tenant", status: "Pending" },
+      attributes: [
+        "ID",
+        "publicUserID",
+        "fullName",
+        "emailAddress",
+        "unitNumber",
+        "status",
+        "created_at"
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch pending users",
+    });
+  }
+};
+
+export const updateUserApproval = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status, moveInDate, leaseEndDate } = req.body;
+
+    const user = await User.findByPk(userId);
+
+    if (!user || user.role !== "tenant") {
+      return res.status(404).json({
+        success: false,
+        message: "Tenant not found",
+      });
+    }
+
+    //  If approving, lease details are required
+    if (status === "Approved") {
+
+      if (!moveInDate || !leaseEndDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Move-in date and lease end date are required for approval",
+        });
+      }
+
+      if (new Date(leaseEndDate) <= new Date(moveInDate)) {
+        return res.status(400).json({
+          success: false,
+          message: "Lease end date must be later than move-in date",
+        });
+      }
+
+      //  Occupancy validation (max 2 per unit)
+      const existingCount = await User.count({
+        where: {
+          unitNumber: user.unitNumber,
+          status: "Approved",
+          leaseStatus: "Active"
+        },
+      });
+
+      if (existingCount >= 2) {
+        return res.status(400).json({
+          success: false,
+          message: "Unit already at maximum capacity (2 tenants)",
+        });
+      }
+
+      user.moveInDate = moveInDate;
+      user.leaseEndDate = leaseEndDate;
+      user.leaseStatus = "Active";
+    }
+
+    if (status === "Declined") {
+      user.moveInDate = null;
+      user.leaseEndDate = null;
+      user.leaseStatus = null;
+    }
+
+    user.status = status;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Tenant ${status} successfully`,
+    });
+
+  } catch (error) {
+    console.error("Approval error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update tenant approval",
+    });
+  }
+};
+
+export const getTenantsOverview = async (req, res) => {
+  try {
+
+    // 🔥 Auto-update expired leases
+    await updateExpiredLeases();
+
+    const tenants = await User.findAll({
+      where: {
+        role: "tenant",
+        status: "Approved",
+      },
+      attributes: [
+        "ID",
+        "unitNumber",
+        "userName",
+        "fullName",
+        "emailAddress",
+        "contactNumber",
+        "numberOfTenants",
+        "moveInDate",
+        "leaseEndDate",
+        "leaseStatus"
+      ],
+      order: [["unitNumber", "ASC"]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: tenants.length,
+      tenants,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch tenants overview",
     });
   }
 };

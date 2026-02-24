@@ -41,18 +41,18 @@ export const loginCaretaker = async (req, res) => {
  */
 export const fetchCaretakerProfile = async (req, res) => {
   try {
-    const { instance, user } = req.caretaker;
+    const { instance } = req.caretaker;
 
     return res.status(200).json({
       success: true,
       caretaker: {
         id: instance.ID,
-        caretaker_id: instance.caretaker_id,
-        fullName: instance.full_name,
-        phoneNumber: instance.phone_number,
-        userName: user.userName,
-        emailAddress: user.emailAddress,
-        role: user.role,
+        caretaker_id: instance.publicUserID,
+        fullName: instance.fullName,
+        contactNumber: instance.contactNumber,
+        username: instance.userName,
+        emailAddress: instance.emailAddress,
+        role: instance.role,
       },
     });
   } catch (error) {
@@ -71,14 +71,13 @@ export const fetchCaretakerProfile = async (req, res) => {
  */
 export const saveCaretakerProfile = async (req, res) => {
   try {
-    const { instance: caretaker, user } = req.caretaker;
-    const { fullName, phoneNumber, emailAddress, userName } = req.body;
+    const { instance: user } = req.caretaker;
+    const { fullName, contactNumber, emailAddress, username } = req.body;
 
-    // Update caretaker fields
-    if (fullName) caretaker.full_name = fullName.trim();
-    if (phoneNumber) caretaker.phone_number = phoneNumber.trim();
+    // Update user fields
+    if (fullName) user.fullName = fullName.trim();
+    if (contactNumber) user.contactNumber = contactNumber.trim();
 
-    // Update linked user fields
     if (emailAddress && emailAddress !== user.emailAddress) {
       const emailExists = await User.findOne({ where: { emailAddress } });
       if (emailExists) {
@@ -90,36 +89,35 @@ export const saveCaretakerProfile = async (req, res) => {
       user.emailAddress = emailAddress.trim();
     }
 
-    if (userName && userName !== user.userName) {
-      const userNameExists = await User.findOne({ where: { userName } });
-      if (userNameExists) {
+    if (username && username !== user.userName) {
+      const usernameExists = await User.findOne({ where: { userName } });
+      if (usernameExists) {
         return res.status(400).json({
           success: false,
           message: "Username already in use",
         });
       }
-      user.userName = userName.trim();
+      user.userName = username.trim();
     }
 
-    await caretaker.save();
     await user.save();
 
     // 🔔 Real-time update event
     emitEvent(req, "dataUpdated", {
       type: "CARETAKER",
       action: "UPDATED",
-      caretaker_id: caretaker.caretaker_id,
+      caretaker_id: user.publicUserID,
     });
 
     return res.status(200).json({
       success: true,
       message: "Caretaker profile updated successfully",
       caretaker: {
-        id: caretaker.ID,
-        caretaker_id: caretaker.caretaker_id,
-        fullName: caretaker.full_name,
-        phoneNumber: caretaker.phone_number,
-        userName: user.userName,
+        id: user.ID,
+        caretaker_id: user.publicUserID,
+        fullName: user.fullName,
+        contactNumber: user.contactNumber,
+        username: user.userName,
         emailAddress: user.emailAddress,
         role: user.role,
       },

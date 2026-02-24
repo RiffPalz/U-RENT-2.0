@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import Admin from "../models/admin.js";
 import User from "../models/user.js";
 
 const adminAuth = async (req, res, next) => {
@@ -26,18 +25,10 @@ const adminAuth = async (req, res, next) => {
       });
     }
 
-    // 3️⃣ Fetch admin + user fresh from DB
-    const admin = await Admin.findOne({
-      where: { userID: decoded.id },
-      include: [
-        {
-          model: User,
-          attributes: ["ID", "userName", "emailAddress", "role"],
-        },
-      ],
-    });
+    // 3️⃣ Fetch admin user from DB
+    const user = await User.findByPk(decoded.id);
 
-    if (!admin || !admin.User) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: "Admin account not found.",
@@ -45,24 +36,22 @@ const adminAuth = async (req, res, next) => {
     }
 
     // 4️⃣ Enforce admin role
-    if (admin.User.role !== "admin") {
+    if (user.role !== "admin") {
       return res.status(403).json({
         success: false,
         message: "Forbidden: Admin access only.",
       });
     }
 
-    // 5️⃣ Attach full admin object to req for controllers
-    // Controllers can access fresh fields or do updates
+    // 5️⃣ Attach user object to req for controllers
     req.admin = {
-      instance: admin, // Sequelize instance for updates
-      user: admin.User, // Linked User instance
-      id: admin.ID, // Admin table PK
-      adminID: admin.adminID,
-      fullName: admin.full_name,
-      emailAddress: admin.emailAddress,
-      phoneNumber: admin.phoneNumber,
-      userName: admin.User.userName,
+      instance: user, // Sequelize instance for updates
+      id: user.ID,
+      adminID: user.publicUserID,
+      fullName: user.fullName,
+      emailAddress: user.emailAddress,
+      contactNumber: user.contactNumber,
+      username: user.userName,
     };
 
     next();

@@ -1,4 +1,4 @@
-import { User, Caretaker } from "../../models/index.js";
+import User from "../../models/user.js";
 import jwt from "jsonwebtoken";
 
 export const caretakerLogin = async ({ userName, password }) => {
@@ -6,13 +6,12 @@ export const caretakerLogin = async ({ userName, password }) => {
     throw new Error("Username and password are required");
   }
 
-  // 1️⃣ Find user with Caretaker profile
+  // 1️⃣ Find user by username and role
   const user = await User.findOne({
-    where: { userName },
-    include: [{ model: Caretaker }],
+    where: { userName: userName, role: "caretaker" },
   });
 
-  if (!user || user.role !== "caretaker" || !user.Caretaker) {
+  if (!user) {
     throw new Error("Invalid username or password");
   }
 
@@ -36,9 +35,9 @@ export const caretakerLogin = async ({ userName, password }) => {
     accessToken: token,
     caretaker: {
       id: user.ID,
-      caretaker_id: user.Caretaker.caretaker_id,
-      fullName: user.Caretaker.full_name,
-      userName: user.userName,
+      caretaker_id: user.publicUserID,
+      fullName: user.fullName,
+      username: user.userName,
       role: "caretaker",
     },
   };
