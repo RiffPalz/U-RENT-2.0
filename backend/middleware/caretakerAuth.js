@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import Caretaker from "../models/caretaker.js";
 import User from "../models/user.js";
 
 const caretakerAuth = async (req, res, next) => {
@@ -23,18 +22,10 @@ const caretakerAuth = async (req, res, next) => {
       });
     }
 
-    // ✅ Fetch caretaker + linked User instance
-    const caretaker = await Caretaker.findOne({
-      where: { user_id: decoded.id },
-      include: [
-        {
-          model: User,
-          attributes: ["ID", "userName", "emailAddress", "role"],
-        },
-      ],
-    });
+    // ✅ Fetch caretaker user
+    const user = await User.findByPk(decoded.id);
 
-    if (!caretaker || !caretaker.User) {
+    if (!user || user.role !== "caretaker") {
       return res.status(401).json({
         success: false,
         message: "Caretaker not found",
@@ -43,15 +34,14 @@ const caretakerAuth = async (req, res, next) => {
 
     // Attach instances + clean snapshot to req
     req.caretaker = {
-      instance: caretaker, // Sequelize instance for updates
-      user: caretaker.User, // Linked User instance
-      id: caretaker.ID,
-      caretaker_id: caretaker.caretaker_id,
-      fullName: caretaker.full_name,
-      phoneNumber: caretaker.phone_number,
-      userName: caretaker.User.userName,
-      emailAddress: caretaker.User.emailAddress,
-      role: caretaker.User.role,
+      instance: user, // Sequelize instance for updates
+      id: user.ID,
+      caretaker_id: user.publicUserID,
+      fullName: user.fullName,
+      contactNumber: user.contactNumber,
+      username: user.userName,
+      emailAddress: user.emailAddress,
+      role: user.role,
     };
 
     next();

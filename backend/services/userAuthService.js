@@ -9,7 +9,7 @@ const generatePublicUserID = async () => {
   // Find the last user with a TENANT-XXX ID
   const lastUser = await User.findOne({
     where: { publicUserID: { [Op.like]: "TENANT-%" } },
-    order: [["createdAt", "DESC"]],
+    order: [["created_at", "DESC"]],
   });
 
   let nextNumber = 1;
@@ -38,11 +38,12 @@ export const registerUser = async (userData) => {
     password,
   } = userData;
 
-  // Check if email or username already exists
+  // Check if email already exists
   if (await User.findOne({ where: { emailAddress: email } })) {
     throw new Error("Email already in use");
   }
 
+  // Check if username already exists
   if (await User.findOne({ where: { userName } })) {
     throw new Error("Username already in use");
   }
@@ -59,8 +60,8 @@ export const registerUser = async (userData) => {
     unitNumber,
     numberOfTenants,
     userName,
-    passwordHash: password, // triggers beforeCreate hook to hash
-    role: "user",
+    password_hash: password, // ✅ CORRECT FIELD NAME
+    role: "tenant", // ✅ CORRECT ENUM VALUE
   });
 
   return user;
@@ -71,8 +72,12 @@ export const registerUser = async (userData) => {
  */
 export const loginUser = async ({ userName, password }) => {
   const user = await User.findOne({ where: { userName } });
-  if (!user || user.role !== "user") {
+  if (!user || user.role !== "tenant") {
     throw new Error("Invalid username or password");
+  }
+
+  if (user.status !== "Approved") {
+    throw new Error("Your account is still pending admin approval");
   }
 
   const isMatch = await user.comparePassword(password);
