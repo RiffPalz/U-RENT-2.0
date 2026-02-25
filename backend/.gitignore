@@ -44,3 +44,5 @@ uploads/
 # Temp/Backup environment files
 .env.*
 !.env.example
+
+seeders/

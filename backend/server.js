@@ -7,11 +7,17 @@ import { Server } from "socket.io";
 import { connectDB, sequelize } from "./config/database.js";
 import connectCloudinary from "./config/cloudinary.js";
 
+// Admin routes
 import adminRoutes from "./routes/admin/adminRoutes.js";
+
+// Caretaker routes
 import caretakerRoutes from "./routes/caretaker/caretakerRoute.js";
+
+// User routes
 import userRoutes from "./routes/userRoutes.js";
+import userMaintenanceRoutes from "./routes/userMaintenanceRoutes.js";
 
-
+// Seeders
 import createDefaultAdmin from "./seeders/defaultAdmin.js";
 import createDefaultCaretaker from "./seeders/defaultCaretaker.js";
 
@@ -71,6 +77,7 @@ app.use("/api/caretaker", caretakerRoutes);
 
 // ===================== User ROUTES =====================
 app.use("/api/users", userRoutes);
+app.use("/api/maintenance", userMaintenanceRoutes);
 
 // Root check
 app.get("/", (req, res) => {
