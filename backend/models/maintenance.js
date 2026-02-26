@@ -71,4 +71,5 @@ const Maintenance = sequelize.define(
   }
 );
 
+
 export default Maintenance;

@@ -3,12 +3,19 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { EventEmitter } from "events";
+
+// raise default listener count to avoid repeated Bus warnings
+EventEmitter.defaultMaxListeners = 20;
+
 
 import { connectDB, sequelize } from "./config/database.js";
 import connectCloudinary from "./config/cloudinary.js";
 
 // Admin routes
 import adminRoutes from "./routes/admin/adminRoutes.js";
+import adminAddTenantRoutes from "./routes/admin/adminAddTenantRoutes.js";
+import adminMaintenanceRoutes from "./routes/admin/adminMaintenanceRoutes.js";
 
 // Caretaker routes
 import caretakerRoutes from "./routes/caretaker/caretakerRoute.js";
@@ -69,6 +76,8 @@ io.on("connection", (socket) => {
 
 // ===================== Admin ROUTES =====================
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/maintenance", adminMaintenanceRoutes);
+app.use("/api/admin/tenants", adminAddTenantRoutes);
 
 
 // ===================== Caretaker ROUTES =====================
@@ -90,7 +99,7 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, async () => {
   try {
     await connectDB();
-    await sequelize.sync({ force: true }); // Recreate tables
+    await sequelize.sync();
     await createDefaultAdmin();
     await createDefaultCaretaker();
 
