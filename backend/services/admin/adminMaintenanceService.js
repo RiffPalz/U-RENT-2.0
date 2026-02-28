@@ -1,36 +1,39 @@
 import { Maintenance, User } from "../../models/index.js";
 
-/**
- * GET ALL MAINTENANCE REQUESTS (ADMIN)
- */
-export const getAllMaintenance = async () => {
-    const requests = await Maintenance.findAll({
-        include: [
-            {
-                model: User,
-                as: "user",
-                attributes: ["publicUserID", "fullName", "unitNumber"],
-            },
-        ],
-        order: [["created_at", "DESC"]],
-    });
+export const createMaintenance = async (data) => {
+  const {
+    userId,
+    category,
+    title,
+    description,
+    status,
+    startDate,
+    endDate,
+  } = data;
 
-    return requests.map((item) => ({
-        id: item.ID,
-        title: item.title,
-        category: item.category,
-        description: item.description,
-        status: item.status,
-        requestedDate: item.dateRequested,
-        startDate: item.startDate,
-        endDate: item.endDate,
-        tenant: {
-            publicUserID: item.user.publicUserID,
-            fullName: item.user.fullName,
-            unitNumber: item.user.unitNumber,
-        },
-    }));
+  const user = await User.findByPk(userId);
+
+  if (!user || user.role !== "tenant") {
+    throw new Error("Tenant not found");
+  }
+
+  const request = await Maintenance.create({
+    userId,
+    category,
+    title,
+    description,
+    status: status || "Pending",
+    startDate: startDate || null,
+    endDate: endDate || null,
+  });
+
+  return {
+    message: "Maintenance request created by admin",
+    id: request.ID,
+  };
 };
+
+
 
 /**
  * APPROVE MAINTENANCE REQUEST
@@ -98,35 +101,51 @@ export const updateMaintenance = async (maintenanceId, data) => {
   };
 };
 
-export const createMaintenance = async (data) => {
-  const {
-    userId,
-    category,
-    title,
-    description,
-    status,
-    startDate,
-    endDate,
-  } = data;
+/**
+ * GET ALL MAINTENANCE REQUESTS (ADMIN)
+ */
+export const getAllMaintenance = async () => {
+    const requests = await Maintenance.findAll({
+        include: [
+            {
+                model: User,
+                as: "user",
+                attributes: ["publicUserID", "fullName", "unitNumber"],
+            },
+        ],
+        order: [["created_at", "DESC"]],
+    });
 
-  const user = await User.findByPk(userId);
+    return requests.map((item) => ({
+        id: item.ID,
+        title: item.title,
+        category: item.category,
+        description: item.description,
+        status: item.status,
+        requestedDate: item.dateRequested,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        tenant: {
+            publicUserID: item.user.publicUserID,
+            fullName: item.user.fullName,
+            unitNumber: item.user.unitNumber,
+        },
+    }));
+};
 
-  if (!user || user.role !== "tenant") {
-    throw new Error("Tenant not found");
+/**
+ * DELETE MAINTENANCE (ADMIN)
+ */
+export const deleteMaintenance = async (maintenanceId) => {
+  const request = await Maintenance.findByPk(maintenanceId);
+
+  if (!request) {
+    throw new Error("Maintenance request not found");
   }
 
-  const request = await Maintenance.create({
-    userId,
-    category,
-    title,
-    description,
-    status: status || "Pending",
-    startDate: startDate || null,
-    endDate: endDate || null,
-  });
+  await request.destroy();
 
   return {
-    message: "Maintenance request created by admin",
-    id: request.ID,
+    message: "Maintenance deleted successfully",
   };
 };

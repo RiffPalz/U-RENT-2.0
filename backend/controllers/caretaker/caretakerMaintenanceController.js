@@ -1,15 +1,16 @@
 import {
-  getAllMaintenance,
-  approveMaintenance,
+  createMaintenance,
   updateMaintenance,
-  createMaintenance as createMaintenanceService,
-  deleteMaintenance
-} from "../../services/admin/adminMaintenanceService.js";
+  getAllMaintenance,
+  deleteMaintenance,
+} from "../../services/caretaker/caretakerMaintenanceService.js";
 
-
+/**
+ * CREATE MAINTENANCE 
+ */
 export const createMaintenanceController = async (req, res) => {
   try {
-    const result = await createMaintenanceService(req.body);
+    const result = await createMaintenance(req.body);
 
     return res.status(201).json({
       success: true,
@@ -25,30 +26,8 @@ export const createMaintenanceController = async (req, res) => {
 };
 
 
-
 /**
- * APPROVE MAINTENANCE REQUEST
- */
-export const approveMaintenanceController = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const result = await approveMaintenance(id);
-
-    return res.status(200).json({
-      success: true,
-      message: result.message,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/**
- * UPDATE MAINTENANCE STATUS
+ * UPDATE MAINTENANCE
  */
 export const updateMaintenanceController = async (req, res) => {
   try {
@@ -68,13 +47,10 @@ export const updateMaintenanceController = async (req, res) => {
   }
 };
 
-
-/**
- * DELETE MAINTENANCE 
- */
 export const deleteMaintenanceController = async (req, res) => {
   try {
     const { id } = req.params;
+
     const result = await deleteMaintenance(id);
 
     return res.status(200).json({
@@ -89,18 +65,17 @@ export const deleteMaintenanceController = async (req, res) => {
   }
 };
 
-
 /**
- * GET ALL MAINTENANCE REQUESTS
+ * GET ALL MAINTENANCE
  */
-export const fetchAllMaintenance = async (req, res) => {
+export const fetchAllMaintenanceController = async (req, res) => {
   try {
-    const result = await getAllMaintenance();
+    const data = await getAllMaintenance();
 
     return res.status(200).json({
       success: true,
-      count: result.length,
-      requests: result,
+      count: data.length,
+      data,
     });
   } catch (error) {
     console.error("Fetch maintenance error:", error);
