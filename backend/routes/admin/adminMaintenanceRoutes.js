@@ -5,17 +5,19 @@ import {
     fetchAllMaintenance,
     approveMaintenanceController,
     updateMaintenanceController,
-    createMaintenanceController
+    createMaintenanceController,
+    deleteMaintenanceController
 } from "../../controllers/admin/adminMaintenanceController.js";
 
 const router = express.Router();
 
-// Get all maintenance requests
-router.get(
-    "/",
-    adminAuth,
-    fetchAllMaintenance
+
+router.post(
+  "/",
+  adminAuth,
+  createMaintenanceController
 );
+
 
 // Approve maintenance request
 router.patch(
@@ -31,10 +33,17 @@ router.patch(
   updateMaintenanceController
 );
 
-router.post(
-  "/",
+router.delete(
+  "/:id",
   adminAuth,
-  createMaintenanceController
+  deleteMaintenanceController
+);
+
+// Get all maintenance requests
+router.get(
+    "/",
+    adminAuth,
+    fetchAllMaintenance
 );
 
 

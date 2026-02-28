@@ -19,6 +19,7 @@ import adminMaintenanceRoutes from "./routes/admin/adminMaintenanceRoutes.js";
 
 // Caretaker routes
 import caretakerRoutes from "./routes/caretaker/caretakerRoute.js";
+import caretakerMaintenanceRoutes from "./routes/caretaker/caretakerMaintenanceRoutes.js";
 
 // User routes
 import userRoutes from "./routes/userRoutes.js";
@@ -82,6 +83,7 @@ app.use("/api/admin/tenants", adminAddTenantRoutes);
 
 // ===================== Caretaker ROUTES =====================
 app.use("/api/caretaker", caretakerRoutes);
+app.use("/api/caretaker/maintenance", caretakerMaintenanceRoutes);
 
 
 // ===================== User ROUTES =====================
